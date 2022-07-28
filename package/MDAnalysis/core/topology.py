@@ -567,14 +567,7 @@ class Topology(object):
 
     @property
     def allows_rdkit(self):
-        rdkit_attrs = []
-        for attr in self.attrs:
-            try:
-                attr.allows_rdkit
-                rdkit_attrs.append(attr)
-            except AttributeError:
-                pass
-        return rdkit_attrs
+        return filter(lambda x: x.allows_rdkit, self.attrs)
 
     @property
     def RDKit_repr(self):

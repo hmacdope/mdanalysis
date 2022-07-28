@@ -41,10 +41,13 @@ from inspect import signature as inspect_signature
 import warnings
 import textwrap
 from types import MethodType
+from typing import Union
 
 import Bio.Seq
 import Bio.SeqRecord
 import numpy as np
+from rdkit import Chem as rdchem
+
 
 from ..lib.util import (cached, convert_aa_code, iterable, warn_if_not_unique,
                         unique_int_1d)
@@ -2582,6 +2585,10 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
             del self._cache['bd']
         except KeyError:
             pass
+        
+        if self.allows_rdkit and self.top.RDKit_backend:
+            # use the callback to update
+            pass
 
     @_check_connection_values
     def _delete_bonds(self, values):
@@ -2611,6 +2618,22 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
             del self._cache['bd']
         except KeyError:
             pass
+            
+        if self.allows_rdkit and self.top.RDKit_backend:
+            # use the callback to update
+            pass
+
+def order_to_RDKit(order: Union[int, None]):
+    rdkit_ord = rdchem.BondType.UNSPECIFIED
+    if order == 1:
+        rdkit_ord == rdchem.BondType.SINGLE
+    elif order == 2:
+        rdkit_ord == rdchem.BondType.DOUBLE
+    elif order == 3:
+        rdkit_ord == rdchem.BondType.TRIPLE
+    elif order == 4:
+        rdkit_ord == rdchem.BondType.QUADRUPLE
+    return rdkit_ord
 
 
 class Bonds(_Connection):
@@ -2637,8 +2660,9 @@ class Bonds(_Connection):
         parameters
         """
         if self.top._RDKit_mol:
-            for val in self.values:
-                self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]))
+            for val, ord in zip(self.values, self.order):
+                rdkit_ord =order_to_RDKit(ord)
+                self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)             
         else:
             raise Exception("RDKit topology backend not present")
 

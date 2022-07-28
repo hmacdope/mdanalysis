@@ -393,6 +393,7 @@ class TopologyAttr(object, metaclass=_TopologyAttrMeta):
     """
     attrname = 'topologyattrs'
     singular = 'topologyattr'
+    allows_rdkit = False
     per_object = None  # ie Resids per_object = 'residue'
     top = None  # pointer to Topology object
     transplants = defaultdict(list)
@@ -2626,8 +2627,20 @@ class Bonds(_Connection):
     # Singular is the same because one Atom might have
     # many bonds, so still asks for "bonds" in the plural
     singular = 'bonds'
+    allows_rdkit = True
     transplants = defaultdict(list)
     _n_atoms = 2
+
+    def _RDKit_callback(self):
+        """
+        Callback to the topology RDKit molecule and update the requisite
+        parameters
+        """
+        if self.top._RDKit_mol:
+            for val in self.values:
+                self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]))
+        else:
+            raise Exception("RDKit topology backend not present")
 
     def bonded_atoms(self):
         """An :class:`~MDAnalysis.core.groups.AtomGroup` of all

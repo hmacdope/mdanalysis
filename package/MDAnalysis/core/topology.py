@@ -56,9 +56,11 @@ Helper functions
 .. autofunction:: make_downshift_arrays
 
 """
+from argparse import ArgumentError
 import contextlib
 
 import numpy as np
+from rdkit import Chem as rdchem
 
 from .topologyattrs import Atomindices, Resindices, Segindices
 from ..exceptions import NoDataError
@@ -451,7 +453,8 @@ class Topology(object):
     def __init__(self, n_atoms=1, n_res=1, n_seg=1,
                  attrs=None,
                  atom_resindex=None,
-                 residue_segindex=None):
+                 residue_segindex=None,
+                 RDKit_backend=True):
         """
         Parameters
         ----------
@@ -482,6 +485,12 @@ class Topology(object):
         self.attrs = []
         for topologyattr in attrs:
             self.add_TopologyAttr(topologyattr)
+
+        self.RDKit_backend = RDKit_backend
+        self._RDKit_mol = None
+        
+        if self.RDKit_backend:
+            self._construct_RDKit_mol()
 
     def copy(self):
         """Return a deepcopy of this Topology"""
@@ -517,6 +526,8 @@ class Topology(object):
         """
         self.attrs.append(topologyattr)
         topologyattr.top = self
+        if topologyattr.allows_rdkit and self.RDKit_backend:
+            topologyattr._RDKit_callback()
         self.__setattr__(topologyattr.attrname, topologyattr)
 
     def del_TopologyAttr(self, topologyattr):
@@ -543,6 +554,34 @@ class Topology(object):
     def read_attributes(self):
         """A list of the attributes read from the topology"""
         return filter(lambda x: not x.is_guessed, self.attrs)
+
+    @property
+    def attribute_names(self):
+        return [attr.attrname for attr in self.attrs]
+
+    def _construct_RDKit_mol(self):
+            self._RDKit_mol = rdchem.RWMol()
+            for i in range(self.n_atoms):
+                atom = rdchem.Atom(0)
+                self._RDKit_mol.AddAtom(atom)
+
+    @property
+    def allows_rdkit(self):
+        rdkit_attrs = []
+        for attr in self.attrs:
+            try:
+                attr.allows_rdkit
+                rdkit_attrs.append(attr)
+            except AttributeError:
+                pass
+        return rdkit_attrs
+
+    @property
+    def RDKit_repr(self):
+        if self._RDKit_mol:
+            return self._RDKit_mol
+        else:
+            return None
 
     def add_Residue(self, segment, **new_attrs):
         """

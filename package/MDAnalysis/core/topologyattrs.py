@@ -2623,7 +2623,7 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
             # use the callback to update
             pass
 
-def order_to_RDKit(order: Union[int, None]):
+def _order_to_RDKit(order: Union[int, None]):
     rdkit_ord = rdchem.BondType.UNSPECIFIED
     if order == 1:
         rdkit_ord == rdchem.BondType.SINGLE
@@ -2635,6 +2635,16 @@ def order_to_RDKit(order: Union[int, None]):
         rdkit_ord == rdchem.BondType.QUADRUPLE
     return rdkit_ord
 
+
+def _RDKit_to_order(bond):
+    ord = None
+    try:
+        ord = rdchem.GetBondTypeAsDouble(bond)
+    except:
+        pass
+    if ord == 0:
+        ord == None
+    return ord
 
 class Bonds(_Connection):
     """Bonds between two atoms
@@ -2660,11 +2670,68 @@ class Bonds(_Connection):
         parameters
         """
         if self.top._RDKit_mol:
-            for val, ord in zip(self.values, self.order):
-                rdkit_ord =order_to_RDKit(ord)
-                self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)             
+            for i, (val, ord, typ, guessed) in enumerate(zip(self.values, self.order, self.types, self._guessed)):
+                rdkit_ord = _order_to_RDKit(ord)
+                typ = int(0 if typ is None else typ)
+                guessed = int(0 if guessed is None else guessed)
+                    
+                try:
+                    self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guessed)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("TYPE", typ)
+
+                except RuntimeError:
+                    # double added the same bond
+                    pass
+
         else:
             raise Exception("RDKit topology backend not present")
+
+    # As this class allows RDKit it needs its own adder and deleter
+    @_check_connection_values
+    def _delete_bonds(self, values):
+        """
+        .. versionadded:: 2.3.0
+        """
+        if self.top.RDKit_backend:
+            # use the callback to update
+            pass
+        else:
+            super()._delete_bonds(values)
+
+    @_check_connection_values
+    def _add_bonds(self, values):
+        """
+        .. versionadded:: 2.3.0
+        """
+        if self.top.RDKit_backend:
+            # use the callback to update
+            pass
+        else:
+            super()._add_bonds(values)
+
+
+    def get_atoms(self, ag):
+        """
+        Get connection values where the atom indices are in
+        the given atomgroup.
+
+        Parameters
+        ----------
+        ag : AtomGroup
+
+        """
+        ix = ag.ix
+        
+        if self.top.RDKit_backend:
+            # for bond in self.top._RDKit_mol.GetBonds():
+            #     start = bond.GetBeginAtomIdx()
+            #     end = bond.get
+            pass
+
+        else:
+            super().get_atoms(ag)
+
 
     def bonded_atoms(self):
         """An :class:`~MDAnalysis.core.groups.AtomGroup` of all

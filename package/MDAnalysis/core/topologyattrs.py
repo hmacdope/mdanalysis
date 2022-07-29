@@ -1425,18 +1425,6 @@ class Masses(AtomAttr):
 
     singledoc = """Mass of the component."""
 
-    def _RDKit_callback(self):
-        """
-        Callback to the topology RDKit molecule and update the requisite
-        parameters
-        """
-        if self.top._RDKit_mol and self.top.RDKit_backend:
-            pass
-            # for i in range(self.n_atoms):
-            #     self.top._RDKit_mol.
-        else:
-            raise Exception("RDKit topology backend not present")
-
     @staticmethod
     def _gen_initial_values(na, nr, ns):
         return np.zeros(na)
@@ -2713,7 +2701,7 @@ class Bonds(_Connection):
         if self.top.RDKit_backend:
             raise RuntimeError("Cannot use the bond dictionary with RDKit topology backend")
         else:
-            return super()._bondDict()
+            return super()._bondDict
 
     @_check_connection_values
     def _add_bonds(self, values, types=None, guessed=True, order=None):

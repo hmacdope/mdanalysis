@@ -2555,6 +2555,7 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
         unique_bonds = np.array(sorted(unique_bonds), dtype=object)
         bond_idx, types, guessed, order = np.hsplit(unique_bonds, 4)
         bond_idx = np.array(bond_idx.ravel().tolist(), dtype=np.int32)
+        print(bond_idx)
         types = types.ravel()
         guessed = guessed.ravel()
         order = order.ravel()
@@ -2713,7 +2714,7 @@ class Bonds(_Connection):
 
     def get_atoms(self, ag):
         """
-        Get connection values where the atom indices are in
+        Get bond values where the atom indices are in
         the given atomgroup.
 
         Parameters
@@ -2721,16 +2722,40 @@ class Bonds(_Connection):
         ag : AtomGroup
 
         """
-        ix = ag.ix
-        
-        if self.top.RDKit_backend:
-            # for bond in self.top._RDKit_mol.GetBonds():
-            #     start = bond.GetBeginAtomIdx()
-            #     end = bond.get
-            pass
 
+        if self.top.RDKit_backend:
+            ix = ag.ix
+            bonds = []
+            guessed = []
+            types = []
+            orders = []
+
+            for atom in ix:
+                atm = self.top._RDKit_mol.GetAtomWithIdx(int(atom))
+                for bond in atm.GetBonds():
+                    first = bond.GetBeginAtomIdx()
+                    second = bond.GetEndAtomIdx()
+                    bonds.append([first, second])
+                    typ = bond.GetIntProp("TYPE")
+                    typ = None if typ == 0 else typ
+                    types.append(typ)
+                    guess = bond.GetIntProp("GUESSED")
+                    guess = None if guess == 0 else guess
+                    guessed.append(guess)
+                    ord = _RDKit_to_order(bond)
+                    orders.append(ord)
+            topgroup = TopologyGroup(np.asarray(bonds, dtype=np.int32), ag.universe,
+                             self.singular[:-1],
+                             np.asarray(types, dtype=object),
+                             np.asarray(guessed, dtype=object),
+                             np.asarray(orders, dtype=object))
+        # post process types and guesses to restore Nones
+        
         else:
-            super().get_atoms(ag)
+            topgroup = super().get_atoms(ag)
+
+        return topgroup
+
 
 
     def bonded_atoms(self):

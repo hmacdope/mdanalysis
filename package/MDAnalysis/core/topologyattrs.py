@@ -2525,6 +2525,7 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
     @cached('bd')
     def _bondDict(self):
         """Lazily built mapping of atoms:bonds"""
+
         bd = defaultdict(list)
 
         for b, t, g, o in zip(self.values, self.types,
@@ -2555,7 +2556,6 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
         unique_bonds = np.array(sorted(unique_bonds), dtype=object)
         bond_idx, types, guessed, order = np.hsplit(unique_bonds, 4)
         bond_idx = np.array(bond_idx.ravel().tolist(), dtype=np.int32)
-        print(bond_idx)
         types = types.ravel()
         guessed = guessed.ravel()
         order = order.ravel()
@@ -2587,10 +2587,6 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
         except KeyError:
             pass
         
-        if self.allows_rdkit and self.top.RDKit_backend:
-            # use the callback to update
-            pass
-
     @_check_connection_values
     def _delete_bonds(self, values):
         """
@@ -2620,9 +2616,6 @@ class _Connection(AtomAttr, metaclass=_ConnectionTopologyAttrMeta):
         except KeyError:
             pass
             
-        if self.allows_rdkit and self.top.RDKit_backend:
-            # use the callback to update
-            pass
 
 def _order_to_RDKit(order: Union[int, None]):
     rdkit_ord = rdchem.BondType.UNSPECIFIED
@@ -2640,7 +2633,7 @@ def _order_to_RDKit(order: Union[int, None]):
 def _RDKit_to_order(bond):
     ord = None
     try:
-        ord = rdchem.GetBondTypeAsDouble(bond)
+        ord = bond.GetBondTypeAsDouble()
     except:
         pass
     if ord == 0:
@@ -2674,7 +2667,7 @@ class Bonds(_Connection):
             for i, (val, ord, typ, guessed) in enumerate(zip(self.values, self.order, self.types, self._guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
                 typ = int(0 if typ is None else typ)
-                guessed = int(0 if guessed is None else guessed)
+                guessed = int(guessed)
                     
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
@@ -2695,19 +2688,40 @@ class Bonds(_Connection):
         .. versionadded:: 2.3.0
         """
         if self.top.RDKit_backend:
-            # use the callback to update
-            pass
+            for value in values:
+                self.top._RDKit_mol.RemoveBonds(value[0], value[1])
         else:
             super()._delete_bonds(values)
 
+
+    @property
+    @cached('bd')
+    def _bondDict(self):
+        if self.top.RDKit_backend:
+            raise RuntimeError("Cannot use the bond dictionary with RDKit topology backend")
+        else:
+            return super()._bondDict()
+
     @_check_connection_values
-    def _add_bonds(self, values):
+    def _add_bonds(self, values, types=None, guessed=True, order=None):
         """
         .. versionadded:: 2.3.0
         """
         if self.top.RDKit_backend:
-            # use the callback to update
-            pass
+            for i, (val, ord, typ, guessed) in enumerate(zip(values, order, types, guessed)):
+                rdkit_ord = _order_to_RDKit(ord)
+                typ = int(0 if typ is None else typ)
+                guessed = int(guessed)
+                    
+                try:
+                    self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guessed)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("TYPE", typ)
+
+                except RuntimeError:
+                    # double added the same bond
+                    pass
+
         else:
             super()._add_bonds(values)
 
@@ -2749,7 +2763,6 @@ class Bonds(_Connection):
                              np.asarray(types, dtype=object),
                              np.asarray(guessed, dtype=object),
                              np.asarray(orders, dtype=object))
-        # post process types and guesses to restore Nones
         
         else:
             topgroup = super().get_atoms(ag)

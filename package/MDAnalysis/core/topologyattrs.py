@@ -1413,6 +1413,7 @@ class Masses(AtomAttr):
                       Atom, Residue, Segment]
     transplants = defaultdict(list)
     dtype = np.float64
+    allows_rdkit = True
 
     groupdoc = """Mass of each component in the Group.
 
@@ -1423,6 +1424,18 @@ class Masses(AtomAttr):
     """
 
     singledoc = """Mass of the component."""
+
+    def _RDKit_callback(self):
+        """
+        Callback to the topology RDKit molecule and update the requisite
+        parameters
+        """
+        if self.top._RDKit_mol and self.top.RDKit_backend:
+            pass
+            # for i in range(self.n_atoms):
+            #     self.top._RDKit_mol.
+        else:
+            raise Exception("RDKit topology backend not present")
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
@@ -2663,7 +2676,7 @@ class Bonds(_Connection):
         Callback to the topology RDKit molecule and update the requisite
         parameters
         """
-        if self.top._RDKit_mol:
+        if self.top._RDKit_mol and self.top.RDKit_backend:
             for i, (val, ord, typ, guessed) in enumerate(zip(self.values, self.order, self.types, self._guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
                 typ = int(0 if typ is None else typ)

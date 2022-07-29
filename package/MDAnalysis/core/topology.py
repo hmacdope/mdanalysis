@@ -454,7 +454,7 @@ class Topology(object):
                  attrs=None,
                  atom_resindex=None,
                  residue_segindex=None,
-                 RDKit_backend=True):
+                 RDKit_backend=False):
         """
         Parameters
         ----------
@@ -472,9 +472,14 @@ class Topology(object):
             1-D array giving the segindex of each residue in the system
 
         """
+
         self.tt = TransTable(n_atoms, n_res, n_seg,
                              atom_resindex=atom_resindex,
                              residue_segindex=residue_segindex)
+
+        self.RDKit_backend = RDKit_backend
+        if self.RDKit_backend:
+            self._construct_RDKit_mol()
 
         if attrs is None:
             attrs = []
@@ -486,11 +491,6 @@ class Topology(object):
         for topologyattr in attrs:
             self.add_TopologyAttr(topologyattr)
 
-        self.RDKit_backend = RDKit_backend
-        self._RDKit_mol = None
-        
-        if self.RDKit_backend:
-            self._construct_RDKit_mol()
 
     def copy(self):
         """Return a deepcopy of this Topology"""

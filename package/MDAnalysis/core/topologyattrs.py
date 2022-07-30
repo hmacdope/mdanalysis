@@ -397,6 +397,7 @@ class TopologyAttr(object, metaclass=_TopologyAttrMeta):
     attrname = 'topologyattrs'
     singular = 'topologyattr'
     allows_rdkit = False
+    using_rdkit = False
     per_object = None  # ie Resids per_object = 'residue'
     top = None  # pointer to Topology object
     transplants = defaultdict(list)
@@ -1413,7 +1414,6 @@ class Masses(AtomAttr):
                       Atom, Residue, Segment]
     transplants = defaultdict(list)
     dtype = np.float64
-    allows_rdkit = True
 
     groupdoc = """Mass of each component in the Group.
 
@@ -2044,10 +2044,66 @@ class FormalCharges(AtomAttr):
     singular = 'formalcharge'
     per_object = 'atom'
     dtype = int
+    allows_rdkit = True
 
     @staticmethod
     def _gen_initial_values(na, nr, ns):
         return np.zeros(na)
+
+    def _RDKit_callback(self):
+        """
+        Callback to the topology RDKit molecule and update the requisite
+        parameters
+        """
+        if self.using_rdkit and self.allows_rdkit:
+            for i in range(self.n_atoms):
+                self.top._RDKit_mol.GetAtomWithIdx(i).SetFormalCharge(self.values[i])
+        else:
+            raise Exception("RDKit topology backend not present")
+
+    def get_atoms(self, ag):
+        if self.using_rdkit:
+            values = np.zeros(len(ag), dtype=np.int32)
+            for i, ix in enumerate(ag.ix):
+                values[i] = self.top._RDKit_mol.GetAtomWithIdx(ix).GetFormalCharge()
+            return values
+        else:
+            return super().get_atoms(ag)
+
+    @_check_length
+    def set_atoms(self, ag, values):
+        if self.using_rdkit:
+            for i, ix in enumerate(ag.ix):
+                self.top._RDKit_mol.GetAtomWithIdx(ix).SetFormalCharge(values[i])
+        else:
+            super().set_atoms(ag, values)
+
+    def get_residues(self, rg):
+        """By default, the values for each atom present in the set of residues
+        are returned in a single array. This behavior can be overriden in child
+        attributes.
+
+        """
+        if self.using_rdkit:
+            aixs = self.top.tt.residues2atoms_2d(rg.ix)
+            
+
+            raise Exception
+        else:
+            return super().get_residues(rg)
+
+
+    def get_segments(self, sg):
+        """By default, the values for each atom present in the set of residues
+        are returned in a single array. This behavior can be overriden in child
+        attributes.
+
+        """
+        if self.using_rdkit:
+            aixs = self.top.tt.segments2atoms_2d(sg.ix)
+            raise Exception
+        else:
+            return super().get_segments(sg)
 
 
 # TODO: update docs to property doc
@@ -2664,7 +2720,7 @@ class Bonds(_Connection):
         Callback to the topology RDKit molecule and update the requisite
         parameters
         """
-        if self.top._RDKit_mol and self.top.RDKit_backend:
+        if self.using_rdkit and self.allows_rdkit:
             for i, (val, ord, typ, guessed) in enumerate(zip(self.values, self.order, self.types, self._guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
                 typ = int(0 if typ is None else typ)
@@ -2688,7 +2744,7 @@ class Bonds(_Connection):
         """
         .. versionadded:: 2.3.0
         """
-        if self.top.RDKit_backend:
+        if self.using_rdkit:
             for value in values:
                 self.top._RDKit_mol.RemoveBonds(value[0], value[1])
         else:
@@ -2698,7 +2754,7 @@ class Bonds(_Connection):
     @property
     @cached('bd')
     def _bondDict(self):
-        if self.top.RDKit_backend:
+        if self.using_rdkit:
             raise RuntimeError("Cannot use the bond dictionary with RDKit topology backend")
         else:
             return super()._bondDict
@@ -2708,7 +2764,7 @@ class Bonds(_Connection):
         """
         .. versionadded:: 2.3.0
         """
-        if self.top.RDKit_backend:
+        if self.using_rdkit:
             for i, (val, ord, typ, guessed) in enumerate(zip(values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
                 typ = int(0 if typ is None else typ)
@@ -2721,8 +2777,7 @@ class Bonds(_Connection):
 
                 except RuntimeError:
                     # double added the same bond
-                    pass
-
+                    pass   
         else:
             super()._add_bonds(values)
 
@@ -2738,7 +2793,7 @@ class Bonds(_Connection):
 
         """
 
-        if self.top.RDKit_backend:
+        if self.using_rdkit:
             ix = ag.ix
             bonds = []
             guessed = []

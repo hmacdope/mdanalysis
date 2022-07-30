@@ -454,7 +454,7 @@ class Topology(object):
                  attrs=None,
                  atom_resindex=None,
                  residue_segindex=None,
-                 RDKit_backend=False):
+                 RDKit_backend=True):
         """
         Parameters
         ----------
@@ -527,6 +527,7 @@ class Topology(object):
         self.attrs.append(topologyattr)
         topologyattr.top = self
         if topologyattr.allows_rdkit and self.RDKit_backend:
+            topologyattr.using_rdkit = True
             topologyattr._RDKit_callback()
         self.__setattr__(topologyattr.attrname, topologyattr)
 
@@ -571,7 +572,7 @@ class Topology(object):
 
     @property
     def RDKit_repr(self):
-        if self._RDKit_mol:
+        if self.RDKit_backend:
             return self._RDKit_mol
         else:
             return None

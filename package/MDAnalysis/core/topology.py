@@ -454,7 +454,7 @@ class Topology(object):
                  attrs=None,
                  atom_resindex=None,
                  residue_segindex=None,
-                 RDKit_backend=True):
+                 RDKit_backend=False):
         """
         Parameters
         ----------

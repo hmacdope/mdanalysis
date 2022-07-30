@@ -2086,9 +2086,10 @@ class FormalCharges(AtomAttr):
         """
         if self.using_rdkit:
             aixs = self.top.tt.residues2atoms_2d(rg.ix)
-            
-
-            raise Exception
+            values = np.zeros(len(aixs), dtype=np.int32)
+            for i, ix in enumerate(aixs):
+                values[i] = self.top._RDKit_mol.GetAtomWithIdx(ix).GetFormalCharge()
+            return values
         else:
             return super().get_residues(rg)
 
@@ -2101,7 +2102,10 @@ class FormalCharges(AtomAttr):
         """
         if self.using_rdkit:
             aixs = self.top.tt.segments2atoms_2d(sg.ix)
-            raise Exception
+            values = np.zeros(len(aixs), dtype=np.int32)
+            for i, ix in enumerate(aixs):
+                values[i] = self.top._RDKit_mol.GetAtomWithIdx(ix).GetFormalCharge()
+            return values
         else:
             return super().get_segments(sg)
 

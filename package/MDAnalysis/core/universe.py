@@ -315,7 +315,8 @@ class Universe(object):
 
     """
     def __init__(self, topology=None, *coordinates, all_coordinates=False,
-                 format=None, topology_format=None, transformations=None,
+                 format=None, topology_format=None,
+                 RDKit_topology_backend=False, transformations=None,
                  guess_bonds=False, vdwradii=None, in_memory=False,
                  in_memory_step=1, **kwargs):
 

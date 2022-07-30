@@ -454,7 +454,7 @@ class Topology(object):
                  attrs=None,
                  atom_resindex=None,
                  residue_segindex=None,
-                 RDKit_backend=False):
+                 RDKit_backend=True):
         """
         Parameters
         ----------
@@ -564,6 +564,7 @@ class Topology(object):
             self._RDKit_mol = rdchem.RWMol()
             for i in range(self.n_atoms):
                 atom = rdchem.Atom(0)
+                atom.SetNoImplicit(True)
                 self._RDKit_mol.AddAtom(atom)
 
     @property

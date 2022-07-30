@@ -2056,7 +2056,7 @@ class FormalCharges(AtomAttr):
         parameters
         """
         if self.using_rdkit and self.allows_rdkit:
-            for i in range(self.n_atoms):
+            for i in range(self._n_atoms):
                 self.top._RDKit_mol.GetAtomWithIdx(i).SetFormalCharge(self.values[i])
         else:
             raise Exception("RDKit topology backend not present")
@@ -2723,17 +2723,31 @@ class Bonds(_Connection):
         """
         Callback to the topology RDKit molecule and update the requisite
         parameters
+
+        .. versionadded:: 2.3.0
         """
         if self.using_rdkit and self.allows_rdkit:
-            for i, (val, ord, typ, guessed) in enumerate(zip(self.values, self.order, self.types, self._guessed)):
+            if self.types is None:
+                types = itertools.cycle((None,))
+            else:
+                types = self.types
+            if self._guessed in (True, False):
+                guessed = itertools.cycle((guessed,))
+            else:
+                guessed = self._guessed
+            if self.order is None:
+                order = itertools.cycle((None,))
+            else:
+                order = self.order
+            for i, (val, ord, typ, guess) in enumerate(zip(self.values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
-                typ = int(0 if typ is None else typ)
-                guessed = int(guessed)
+                typ = str(typ)
+                guess = int(guess)
                     
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
-                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guessed)
-                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("TYPE", typ)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guess)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetProp("TYPE", typ)
 
                 except RuntimeError:
                     # double added the same bond
@@ -2750,7 +2764,7 @@ class Bonds(_Connection):
         """
         if self.using_rdkit:
             for value in values:
-                self.top._RDKit_mol.RemoveBonds(value[0], value[1])
+                self.top._RDKit_mol.RemoveBond(value[0], value[1])
         else:
             super()._delete_bonds(values)
 
@@ -2769,15 +2783,22 @@ class Bonds(_Connection):
         .. versionadded:: 2.3.0
         """
         if self.using_rdkit:
+            if types is None:
+                types = itertools.cycle((None,))
+            if guessed in (True, False):
+                guessed = itertools.cycle((guessed,))
+            if order is None:
+                order = itertools.cycle((None,))
+
             for i, (val, ord, typ, guessed) in enumerate(zip(values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
-                typ = int(0 if typ is None else typ)
+                typ = str(typ)
                 guessed = int(guessed)
                     
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
                     self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guessed)
-                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("TYPE", typ)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetProp("TYPE", typ)
 
                 except RuntimeError:
                     # double added the same bond
@@ -2798,7 +2819,12 @@ class Bonds(_Connection):
         """
 
         if self.using_rdkit:
+            
             ix = ag.ix
+            # perhaps we got passed an atom in which case should be a scalar
+            if np.isscalar(ix):
+                ix = [ix]
+            
             bonds = []
             guessed = []
             types = []
@@ -2810,8 +2836,7 @@ class Bonds(_Connection):
                     first = bond.GetBeginAtomIdx()
                     second = bond.GetEndAtomIdx()
                     bonds.append([first, second])
-                    typ = bond.GetIntProp("TYPE")
-                    typ = None if typ == 0 else typ
+                    typ = bond.GetProp("TYPE")
                     types.append(typ)
                     guess = bond.GetIntProp("GUESSED")
                     guess = None if guess == 0 else guess

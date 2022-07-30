@@ -2065,7 +2065,7 @@ class FormalCharges(AtomAttr):
         if self.using_rdkit:
             values = np.zeros(len(ag), dtype=np.int32)
             for i, ix in enumerate(ag.ix):
-                values[i] = self.top._RDKit_mol.GetAtomWithIdx(ix).GetFormalCharge()
+                values[i] = self.top._RDKit_mol.GetAtomWithIdx(int(ix)).GetFormalCharge()
             return values
         else:
             return super().get_atoms(ag)
@@ -2074,7 +2074,7 @@ class FormalCharges(AtomAttr):
     def set_atoms(self, ag, values):
         if self.using_rdkit:
             for i, ix in enumerate(ag.ix):
-                self.top._RDKit_mol.GetAtomWithIdx(ix).SetFormalCharge(values[i])
+                self.top._RDKit_mol.GetAtomWithIdx(int(ix)).SetFormalCharge(values[i])
         else:
             super().set_atoms(ag, values)
 
@@ -2088,7 +2088,7 @@ class FormalCharges(AtomAttr):
             aixs = self.top.tt.residues2atoms_2d(rg.ix)
             values = np.zeros(len(aixs), dtype=np.int32)
             for i, ix in enumerate(aixs):
-                values[i] = self.top._RDKit_mol.GetAtomWithIdx(ix).GetFormalCharge()
+                values[i] = self.top._RDKit_mol.GetAtomWithIdx(int(ix)).GetFormalCharge()
             return values
         else:
             return super().get_residues(rg)
@@ -2104,7 +2104,7 @@ class FormalCharges(AtomAttr):
             aixs = self.top.tt.segments2atoms_2d(sg.ix)
             values = np.zeros(len(aixs), dtype=np.int32)
             for i, ix in enumerate(aixs):
-                values[i] = self.top._RDKit_mol.GetAtomWithIdx(ix).GetFormalCharge()
+                values[i] = self.top._RDKit_mol.GetAtomWithIdx(int(ix)).GetFormalCharge()
             return values
         else:
             return super().get_segments(sg)
@@ -2763,7 +2763,7 @@ class Bonds(_Connection):
         """
         if self.using_rdkit:
             for value in values:
-                self.top._RDKit_mol.RemoveBond(value[0], value[1])
+                self.top._RDKit_mol.RemoveBond(int(value[0]), int(value[1]))
         else:
             super()._delete_bonds(values)
 
@@ -2781,8 +2781,8 @@ class Bonds(_Connection):
                     typ = bond.GetProp("TYPE")
                     guess = bond.GetIntProp("GUESSED")
                     ord = _RDKit_to_order(bond)
-                    bd[first].append([first,second], typ, guess, ord)
-                    bd[second].append([first,second], typ, guess, ord)
+                    bd[first].append(([first,second], typ, guess, ord))
+                    bd[second].append(([first,second], typ, guess, ord))
 
             return bd
         else:

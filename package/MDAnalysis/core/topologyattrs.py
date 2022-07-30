@@ -2056,8 +2056,8 @@ class FormalCharges(AtomAttr):
         parameters
         """
         if self.using_rdkit and self.allows_rdkit:
-            for i in range(self._n_atoms):
-                self.top._RDKit_mol.GetAtomWithIdx(i).SetFormalCharge(self.values[i])
+            for i, val in enumerate(self.values):
+                self.top._RDKit_mol.GetAtomWithIdx(i).SetFormalCharge(int(val))
         else:
             raise Exception("RDKit topology backend not present")
 
@@ -2748,7 +2748,6 @@ class Bonds(_Connection):
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
                     self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guess)
                     self.top._RDKit_mol.GetBondWithIdx(i).SetProp("TYPE", typ)
-
                 except RuntimeError:
                     # double added the same bond
                     pass
@@ -2773,7 +2772,19 @@ class Bonds(_Connection):
     @cached('bd')
     def _bondDict(self):
         if self.using_rdkit:
-            raise RuntimeError("Cannot use the bond dictionary with RDKit topology backend")
+
+            bd = defaultdict(list)
+            
+            for  bond in self.top._RDKit_mol.GetBonds():
+                    first = bond.GetBeginAtomIdx()
+                    second = bond.GetEndAtomIdx()
+                    typ = bond.GetProp("TYPE")
+                    guess = bond.GetIntProp("GUESSED")
+                    ord = _RDKit_to_order(bond)
+                    bd[first].append([first,second], typ, guess, ord)
+                    bd[second].append([first,second], typ, guess, ord)
+
+            return bd
         else:
             return super()._bondDict
 
@@ -2790,6 +2801,8 @@ class Bonds(_Connection):
             if order is None:
                 order = itertools.cycle((None,))
 
+            n_bonds = self.top._RDKit_mol.GetNumBonds()
+
             for i, (val, ord, typ, guessed) in enumerate(zip(values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
                 typ = str(typ)
@@ -2797,12 +2810,13 @@ class Bonds(_Connection):
                     
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
-                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guessed)
-                    self.top._RDKit_mol.GetBondWithIdx(i).SetProp("TYPE", typ)
+                    self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetIntProp("GUESSED", guessed)
+                    self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetProp("TYPE", typ) 
 
                 except RuntimeError:
                     # double added the same bond
-                    pass   
+                    pass
+  
         else:
             super()._add_bonds(values)
 

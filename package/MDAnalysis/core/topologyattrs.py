@@ -2741,12 +2741,11 @@ class Bonds(_Connection):
                 order = self.order
             for i, (val, ord, typ, guess) in enumerate(zip(self.values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
-                typ = str(typ)
-                guess = int(guess)
-                    
+                guess = bool(guess)
+                typ = "None" if typ == None else typ
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
-                    self.top._RDKit_mol.GetBondWithIdx(i).SetIntProp("GUESSED", guess)
+                    self.top._RDKit_mol.GetBondWithIdx(i).SetBoolProp("GUESSED", guess)
                     self.top._RDKit_mol.GetBondWithIdx(i).SetProp("TYPE", typ)
                 except RuntimeError:
                     # double added the same bond
@@ -2779,7 +2778,7 @@ class Bonds(_Connection):
                     first = bond.GetBeginAtomIdx()
                     second = bond.GetEndAtomIdx()
                     typ = bond.GetProp("TYPE")
-                    guess = bond.GetIntProp("GUESSED")
+                    guess = bond.GetBoolProp("GUESSED")
                     ord = _RDKit_to_order(bond)
                     bd[first].append(([first,second], typ, guess, ord))
                     bd[second].append(([first,second], typ, guess, ord))
@@ -2803,14 +2802,13 @@ class Bonds(_Connection):
 
             n_bonds = self.top._RDKit_mol.GetNumBonds()
 
-            for i, (val, ord, typ, guessed) in enumerate(zip(values, order, types, guessed)):
+            for i, (val, ord, typ, guess) in enumerate(zip(values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
-                typ = str(typ)
-                guessed = int(guessed)
-                    
+                typ = "None" if typ == None else typ
+                guess = bool(guess)
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
-                    self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetIntProp("GUESSED", guessed)
+                    self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetBoolProp("GUESSED", guessed)
                     self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetProp("TYPE", typ) 
 
                 except RuntimeError:
@@ -2852,8 +2850,7 @@ class Bonds(_Connection):
                     bonds.append([first, second])
                     typ = bond.GetProp("TYPE")
                     types.append(typ)
-                    guess = bond.GetIntProp("GUESSED")
-                    guess = None if guess == 0 else guess
+                    guess = bond.GetBoolProp("GUESSED")
                     guessed.append(guess)
                     ord = _RDKit_to_order(bond)
                     orders.append(ord)

@@ -2719,6 +2719,9 @@ class Bonds(_Connection):
     transplants = defaultdict(list)
     _n_atoms = 2
 
+    _rdkit_types = []
+
+
     def _RDKit_callback(self):
         """
         Callback to the topology RDKit molecule and update the requisite
@@ -2742,7 +2745,7 @@ class Bonds(_Connection):
             for i, (val, ord, typ, guess) in enumerate(zip(self.values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
                 guess = bool(guess)
-                typ = "None" if typ == None else typ
+                typ = str(typ)
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
                     self.top._RDKit_mol.GetBondWithIdx(i).SetBoolProp("GUESSED", guess)
@@ -2804,11 +2807,11 @@ class Bonds(_Connection):
 
             for i, (val, ord, typ, guess) in enumerate(zip(values, order, types, guessed)):
                 rdkit_ord = _order_to_RDKit(ord)
-                typ = "None" if typ == None else typ
+                typ = str(typ)
                 guess = bool(guess)
                 try:
                     self.top._RDKit_mol.AddBond(int(val[0]), int(val[1]), rdkit_ord)
-                    self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetBoolProp("GUESSED", guessed)
+                    self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetBoolProp("GUESSED", guess)
                     self.top._RDKit_mol.GetBondWithIdx(i + n_bonds).SetProp("TYPE", typ) 
 
                 except RuntimeError:

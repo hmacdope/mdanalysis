@@ -2780,7 +2780,10 @@ class Bonds(_Connection):
             for  bond in self.top._RDKit_mol.GetBonds():
                     first = bond.GetBeginAtomIdx()
                     second = bond.GetEndAtomIdx()
-                    typ = bond.GetProp("TYPE")
+                    try:
+                        typ = bond.GetProp("TYPE")
+                    except KeyError:
+                        typ = None
                     guess = bond.GetBoolProp("GUESSED")
                     ord = _RDKit_to_order(bond)
                     bd[first].append(([first,second], typ, guess, ord))
@@ -2851,8 +2854,13 @@ class Bonds(_Connection):
                     first = bond.GetBeginAtomIdx()
                     second = bond.GetEndAtomIdx()
                     bonds.append([first, second])
-                    typ = bond.GetProp("TYPE")
-                    types.append(typ)
+                    try:
+                        typ = bond.GetProp("TYPE")
+                        types.append(typ)
+
+                    except KeyError:
+                        # somehow bonds got added without a type attr
+                        typ.append(None)
                     guess = bond.GetBoolProp("GUESSED")
                     guessed.append(guess)
                     ord = _RDKit_to_order(bond)

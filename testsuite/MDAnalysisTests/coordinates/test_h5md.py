@@ -907,6 +907,6 @@ class TestH5MDReaderWithObservables(object):
     def test_read_h5md_issue4598(self):
         """Read a H5MD file with observables.
         
-        The reader will ignore the 'observables/atoms/energy'.
+        The reader will read nested group specific observables.
         """
         _ = H5MDReader(H5MD_energy, convert_units=True)

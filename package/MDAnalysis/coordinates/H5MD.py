@@ -690,7 +690,7 @@ class H5MDReader(base.ReaderBase):
                                 subkey
                             ]["value"][self._frame]
                 except KeyError:
-                    warnings.warn(f"Could not read {key} from observables group, not a legal H5MD observable specification")
+                    warnings.warn(f"Could not read {key} from observables group, not a legal H5MD observable specification or data not ")
 
 
         # pulls 'time' and 'step' out of first available parent group

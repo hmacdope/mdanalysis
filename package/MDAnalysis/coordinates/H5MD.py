@@ -677,10 +677,20 @@ class H5MDReader(base.ReaderBase):
 
         if "observables" in self._file:
             for key in self._file["observables"].keys():
-                with contextlib.suppress(KeyError):
-                    self.ts.data[key] = self._file["observables"][key][
-                        "value"
-                    ][self._frame]
+                try:
+                    # if has value as subkey read directly into data
+                    if "value" in self._file["observables"][key]:
+                        self.ts.data[key] = self._file["observables"][key][
+                            "value"
+                        ][self._frame]
+                    # if value is not a subkey, read dict of subkeys
+                    else:
+                        for subkey in self._file["observables"][key].keys():
+                            self.ts.data[key + "/" + subkey] = self._file["observables"][key][
+                                subkey
+                            ]["value"][self._frame]
+                except KeyError:
+                    warnings.warn(f"Could not read {key} from observables group, not a legal H5MD observable specification")
 
 
         # pulls 'time' and 'step' out of first available parent group
